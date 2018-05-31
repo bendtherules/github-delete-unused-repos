@@ -94,7 +94,7 @@ interface RepoNameWithBranchesAndParent
   extends RepoNameWithBranches,
     RepoNameWithParentRepo {}
 
-const username = 'rousan';
+const username = 'bendtherules';
 
 async function fetchRepoNameWithBranches(
   repoName: string
@@ -209,7 +209,7 @@ async function fetchUnusedForkedRepos() {
     //   type,
     //   sort,
     //   direction,
-    per_page: 100, // solve pagination // change this value // handle abuse detection
+    per_page: 20, // solve pagination // change this value // handle abuse detection
     //   page,
   });
 
