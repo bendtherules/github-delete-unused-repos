@@ -32,6 +32,11 @@ interface ResponseFromCompareCommits {
   };
 }
 
+interface ResponseFromGetContributors {
+  data: OwnerFromGetContributors[] | undefined;
+  meta: {};
+}
+
 interface RepoFromGetUserRepo {
   default_branch: string;
   description: string;
@@ -56,6 +61,8 @@ interface OwnerFromGetUserRepo {
   repos_url: string;
   type: UserType;
 }
+
+type OwnerFromGetContributors = OwnerFromGetUserRepo;
 
 enum UserType {
   User = 'User',
@@ -202,6 +209,36 @@ async function fetchNoneOfForkBranchesIsAhead(
   };
 }
 
+async function fetchUserIsNotContributor(
+  repoName: string
+): Promise<RepoNameWithUnusedFlag> {
+  const responseFromGetContributors: ResponseFromGetContributors = ((await octokit.repos.getContributors(
+    {
+      owner: username,
+      repo: repoName,
+      anon: '0',
+      per_page: 100,
+      page: 1,
+    }
+  )) as any) as ResponseFromGetContributors;
+
+  let contributors = responseFromGetContributors.data;
+
+  if (contributors === undefined) {
+    contributors = [];
+  }
+
+  const foundContributor = contributors.find(
+    tmpContributor => tmpContributor.login === username
+  );
+
+  return {
+    // tslint:disable-next-line:object-literal-shorthand
+    repoName: repoName,
+    unused: foundContributor === undefined,
+  };
+}
+
 async function fetchUnusedForkedRepos() {
   const repos: ResponseFromGetUserRepo = await octokit.repos.getForUser({
     // tslint:disable-next-line:object-literal-shorthand
@@ -209,7 +246,7 @@ async function fetchUnusedForkedRepos() {
     //   type,
     //   sort,
     //   direction,
-    per_page: 20, // solve pagination // change this value // handle abuse detection
+    per_page: 100, // solve pagination // change this value // handle abuse detection
     //   page,
   });
 
@@ -274,17 +311,59 @@ async function fetchUnusedForkedRepos() {
     }
   }
 
-  const allPromiseRepoNameWithUnusedFlag = allRepoNameWithBranchesAndParent.map(
-    (repoInfo: RepoNameWithBranchesAndParent) => {
-      return fetchNoneOfForkBranchesIsAhead(repoInfo);
+  const allRepoWithFlagMerged: RepoNameWithUnusedFlag[] = [];
+
+  {
+    const allPromiseRepoWithFlagFromCommit = allRepoNameWithBranchesAndParent.map(
+      (repoInfo: RepoNameWithBranchesAndParent) => {
+        return fetchNoneOfForkBranchesIsAhead(repoInfo);
+      }
+    );
+
+    const allPromiseRepoWithFlagFromContrib = allRepoNameWithBranchesAndParent.map(
+      ({ repoName }) => {
+        return fetchUserIsNotContributor(repoName);
+      }
+    );
+
+    const allRepoWithFlagFromCommit: RepoNameWithUnusedFlag[] = await Promise.all(
+      allPromiseRepoWithFlagFromCommit
+    );
+
+    const allRepoWithFlagFromContrib: RepoNameWithUnusedFlag[] = await Promise.all(
+      allPromiseRepoWithFlagFromContrib
+    );
+
+    {
+      assert.strictEqual(
+        allRepoWithFlagFromCommit.length,
+        allRepoWithFlagFromContrib.length,
+        'Length of `allRepoWithFlagFromCommit` and `allRepoWithFlagFromContrib` should be same'
+      );
+
+      const repoCount = allRepoWithFlagFromCommit.length;
+
+      for (let index = 0; index < repoCount; index++) {
+        const tmpObjFromCommit = allRepoWithFlagFromCommit[index];
+        const tmpObjFromContrib = allRepoWithFlagFromContrib[index];
+
+        assert.strictEqual(
+          tmpObjFromCommit.repoName,
+          tmpObjFromContrib.repoName,
+          'Reponame from same index of `allRepoWithFlagFromCommit` and `allRepoWithFlagFromContrib` should be same'
+        );
+
+        const tmpRepoName = tmpObjFromCommit.repoName;
+
+        allRepoWithFlagMerged.push({
+          repoName: tmpRepoName,
+          unused: tmpObjFromCommit.unused && tmpObjFromContrib.unused,
+        });
+      }
     }
-  );
+  }
 
-  const allRepoNameWithUnusedFlag = await Promise.all(
-    allPromiseRepoNameWithUnusedFlag
-  );
-
-  const unusedRepoNames = allRepoNameWithUnusedFlag
+  const unusedRepoNames = allRepoWithFlagMerged
     .filter(tmp => tmp.unused)
     .map(tmp => tmp.repoName);
 
