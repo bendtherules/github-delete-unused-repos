@@ -8,14 +8,27 @@ octokit.authenticate({
   secret: '2228539a48032f0622d6c12a66f56253d0a30d60',
 });
 
+interface ResponseWithDataArray<T> {
+  data: T[];
+}
+
+interface ResponseWithMetaLink {
+  meta: {
+    link: string
+  };
+}
+
+interface ResponseWithPaginationAndMeta<T> extends ResponseWithDataArray<T>, ResponseWithMetaLink {
+
+}
+
 interface ResponseFromGetUserRepo {
   data: RepoFromGetUserRepo[];
   meta: {};
 }
 
-interface ResponseFromGetBranches {
+interface ResponseFromGetBranches extends ResponseWithMetaLink {
   data: BranchFromGetBranches[];
-  meta: {};
 }
 
 interface ResponseFromGetRepo {
@@ -99,20 +112,51 @@ interface RepoNameWithParentRepo {
 
 interface RepoNameWithBranchesAndParent
   extends RepoNameWithBranches,
-    RepoNameWithParentRepo {}
+  RepoNameWithParentRepo { }
 
 const username = 'bendtherules';
+
+interface ObjectWithPerPage {
+  per_page?: number;
+}
+
+async function paginate<TFirstParam extends ObjectWithPerPage, TDataElement>(
+  method: (args: TFirstParam) => ResponseWithPaginationAndMeta<TDataElement>,
+  args: TFirstParam
+): Promise<ResponseWithDataArray<TDataElement>> {
+
+  // Set per_page
+  args.per_page = 100;
+
+  let response: ResponseWithPaginationAndMeta<TDataElement> = await method(args);
+
+  // Concat all data
+  let { data } = response;
+  while (octokit.hasNextPage(response)) {
+    response = await octokit.getNextPage(response);
+    data = data.concat(response.data);
+  }
+
+  return {
+    data
+  };
+}
 
 async function fetchRepoNameWithBranches(
   repoName: string
 ): Promise<RepoNameWithBranches> {
-  const branchesResponse: ResponseFromGetBranches = await octokit.repos.getBranches(
-    {
-      owner: username,
-      repo: repoName,
-      per_page: 10, // change this
-    }
-  );
+  const params: rest.ReposGetBranchesParams = {
+    owner: username,
+    repo: repoName,
+  };
+
+  const branchesResponse: ResponseWithDataArray<BranchFromGetBranches> =
+    await paginate(
+      (tmpFirstParam: rest.ReposGetBranchesParams): ResponseFromGetBranches => {
+        return octokit.repos.getBranches(tmpFirstParam) as any as ResponseFromGetBranches;
+      },
+      params
+    );
 
   return {
     repoName,
