@@ -22,9 +22,8 @@ interface ResponseWithPaginationAndMeta<T> extends ResponseWithDataArray<T>, Res
 
 }
 
-interface ResponseFromGetUserRepo {
+interface ResponseFromGetUserRepo extends ResponseWithMetaLink {
   data: RepoFromGetUserRepo[];
-  meta: {};
 }
 
 interface ResponseFromGetBranches extends ResponseWithMetaLink {
@@ -284,15 +283,17 @@ async function fetchUserIsNotContributor(
 }
 
 async function fetchUnusedForkedRepos() {
-  const repos: ResponseFromGetUserRepo = await octokit.repos.getForUser({
-    // tslint:disable-next-line:object-literal-shorthand
-    username: username,
-    //   type,
-    //   sort,
-    //   direction,
-    per_page: 100, // solve pagination // change this value // handle abuse detection
-    //   page,
-  });
+  const params: rest.ReposGetForUserParams = {
+    username,
+  }
+
+  const repos: ResponseWithDataArray<RepoFromGetUserRepo> =
+    await paginate(
+      (tmpFirstParam: rest.ReposGetForUserParams): ResponseFromGetUserRepo => {
+        return octokit.repos.getForUser(tmpFirstParam) as any as ResponseFromGetUserRepo;
+      },
+      params
+    );
 
   const forkedRepoNames = repos.data
     .filter(repo => repo.fork)
