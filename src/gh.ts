@@ -308,10 +308,11 @@ async function fetchNoneOfForkBranchesIsAhead(
 }
 
 async function fetchUserIsNotContributor(
+  repoOwner: string,
   repoName: string
 ): Promise<RepoNameWithUnusedFlag> {
   const params: Octokit.ReposGetContributorsParams = {
-    owner: username,
+    owner: repoOwner,
     repo: repoName,
     anon: '0',
   };
@@ -443,9 +444,15 @@ async function fetchUnusedForkedRepos() {
       }
     );
 
-    const allPromiseRepoWithFlagFromContrib = allRepoNameWithBranchesAndParent.map(
+    const allPromiseRepoWithFlagFromForkContrib = allRepoNameWithBranchesAndParent.map(
       ({ repoName }) => {
-        return fetchUserIsNotContributor(repoName);
+        return fetchUserIsNotContributor(username, repoName);
+      }
+    );
+
+    const allPromiseRepoWithFlagFromParentContrib = allRepoNameWithBranchesAndParent.map(
+      ({ repoName, parentRepo }) => {
+        return fetchUserIsNotContributor(parentRepo.owner.login, repoName);
       }
     );
 
@@ -453,14 +460,18 @@ async function fetchUnusedForkedRepos() {
       allPromiseRepoWithFlagFromCommit
     );
 
-    const allRepoWithFlagFromContrib: RepoNameWithUnusedFlag[] = await Promise.all(
-      allPromiseRepoWithFlagFromContrib
+    const allRepoWithFlagFromForkContrib: RepoNameWithUnusedFlag[] = await Promise.all(
+      allPromiseRepoWithFlagFromForkContrib
+    );
+
+    const allRepoWithFlagFromParentContrib: RepoNameWithUnusedFlag[] = await Promise.all(
+      allPromiseRepoWithFlagFromParentContrib
     );
 
     {
       assert.strictEqual(
         allRepoWithFlagFromCommit.length,
-        allRepoWithFlagFromContrib.length,
+        allRepoWithFlagFromForkContrib.length,
         'Length of `allRepoWithFlagFromCommit` and `allRepoWithFlagFromContrib` should be same'
       );
 
@@ -468,19 +479,29 @@ async function fetchUnusedForkedRepos() {
 
       for (let index = 0; index < repoCount; index++) {
         const tmpObjFromCommit = allRepoWithFlagFromCommit[index];
-        const tmpObjFromContrib = allRepoWithFlagFromContrib[index];
+        const tmpObjFromForkContrib = allRepoWithFlagFromForkContrib[index];
+        const tmpObjFromParentContrib = allRepoWithFlagFromParentContrib[index];
 
         assert.strictEqual(
           tmpObjFromCommit.repoName,
-          tmpObjFromContrib.repoName,
+          tmpObjFromForkContrib.repoName,
           'Reponame from same index of `allRepoWithFlagFromCommit` and `allRepoWithFlagFromContrib` should be same'
+        );
+
+        assert.strictEqual(
+          tmpObjFromForkContrib.repoName,
+          tmpObjFromParentContrib.repoName,
+          'Reponame from same index of `tmpObjFromForkContrib` and `tmpObjFromParentContrib` should be same'
         );
 
         const tmpRepoName = tmpObjFromCommit.repoName;
 
         allRepoWithFlagMerged.push({
           repoName: tmpRepoName,
-          unused: tmpObjFromCommit.unused && tmpObjFromContrib.unused,
+          unused:
+            tmpObjFromCommit.unused &&
+            tmpObjFromForkContrib.unused &&
+            tmpObjFromParentContrib.unused,
         });
       }
     }
@@ -524,3 +545,8 @@ fetchUnusedForkedRepos().then(unusedRepoNames => {
 // 6. Delete those repos
 // https://developer.github.com/v3/repos/#delete-a-repository
 // https://octokit.github.io/rest.js/#api-Repos-delete
+
+// TODO
+// In step 4, also check contributor list in parent repo
+// Add step 4.1, list commits on a repo filtered by author - for both parent and fork - should be empty
+// https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
