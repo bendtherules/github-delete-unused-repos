@@ -18,7 +18,7 @@ interface ResponseWithMetaLink {
   };
 }
 
-interface ResponseWithPaginationAndMeta<T> extends ResponseWithDataArray<T>, ResponseWithMetaLink {
+interface ResponseWithDataArrayAndMeta<T> extends ResponseWithDataArray<T>, ResponseWithMetaLink {
 
 }
 
@@ -44,9 +44,8 @@ interface ResponseFromCompareCommits {
   };
 }
 
-interface ResponseFromGetContributors {
+interface ResponseFromGetContributors extends ResponseWithMetaLink {
   data: OwnerFromGetContributors[] | undefined;
-  meta: {};
 }
 
 interface RepoFromGetUserRepo {
@@ -120,14 +119,14 @@ interface ObjectWithPerPage {
 }
 
 async function paginate<TFirstParam extends ObjectWithPerPage, TDataElement>(
-  method: (args: TFirstParam) => Promise<ResponseWithPaginationAndMeta<TDataElement>>,
+  method: (args: TFirstParam) => Promise<ResponseWithDataArrayAndMeta<TDataElement>>,
   args: TFirstParam
 ): Promise<ResponseWithDataArray<TDataElement>> {
 
   // Set per_page
   args.per_page = 100;
 
-  let response: ResponseWithPaginationAndMeta<TDataElement> = await method(args);
+  let response: ResponseWithDataArrayAndMeta<TDataElement> = await method(args);
 
   // Concat all data
   let { data } = response;
@@ -255,30 +254,43 @@ async function fetchNoneOfForkBranchesIsAhead(
 async function fetchUserIsNotContributor(
   repoName: string
 ): Promise<RepoNameWithUnusedFlag> {
-  const responseFromGetContributors: ResponseFromGetContributors = ((await octokit.repos.getContributors(
-    {
-      owner: username,
-      repo: repoName,
-      anon: '0',
-      per_page: 100,
-      page: 1,
-    }
-  )) as any) as ResponseFromGetContributors;
+  const params: rest.ReposGetContributorsParams = {
+    owner: username,
+    repo: repoName,
+    anon: '0',
+  };
 
-  let contributors = responseFromGetContributors.data;
+  const responseFromGetContributors: ResponseWithDataArray<OwnerFromGetContributors> =
+    await paginate(
+      async (tmpFirstParam: rest.ReposGetContributorsParams): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
+        // Modify getContributors to return empty contributor data array instead of undefined for empty repos
+        const response = await (octokit.repos.getContributors(tmpFirstParam) as any as Promise<ResponseFromGetContributors>);
 
-  if (contributors === undefined) {
-    contributors = [];
-  }
+        let dataNormalized = response.data;
+        if (dataNormalized === undefined) {
+          dataNormalized = [];
+        }
 
-  const foundContributor = contributors.find(
+        const responseNormalized: ResponseWithDataArrayAndMeta<OwnerFromGetContributors> = {
+          data: dataNormalized,
+          meta: response.meta
+        };
+
+        return responseNormalized;
+      },
+      params
+    );
+
+  const contributors = responseFromGetContributors.data;
+  
+  const matchingContributor = contributors.find(
     tmpContributor => tmpContributor.login === username
   );
 
   return {
     // tslint:disable-next-line:object-literal-shorthand
     repoName: repoName,
-    unused: foundContributor === undefined,
+    unused: matchingContributor === undefined,
   };
 }
 
