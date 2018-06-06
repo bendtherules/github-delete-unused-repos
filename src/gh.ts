@@ -1,12 +1,65 @@
-import rest = require('@octokit/rest');
+import * as Octokit from '@octokit/rest';
 import assert = require('assert');
+import Bottleneck from 'bottleneck';
 
-const octokit = new rest();
+const octokit = new Octokit() as OctokitMod;
+
+// Add rate limiter
+const limiter = new Bottleneck({
+  maxConcurrent: 10,
+  minTime: 50,
+});
+
+const noop = () => Promise.resolve();
+octokit.hook.before('request', limiter.schedule.bind(limiter, noop));
+
+// Add key and secret for query
 octokit.authenticate({
   type: 'oauth',
   key: '05e5f5ec65387c49137b',
   secret: '2228539a48032f0622d6c12a66f56253d0a30d60',
 });
+
+interface RequestOptions {
+  method: string;
+  url: string;
+  headers: any;
+  query?: string;
+  variables?: Variables;
+}
+
+interface Result {
+  headers: {
+    status: string;
+  };
+}
+
+interface OctokitError {
+  code: number;
+  status: string;
+}
+
+interface OctokitMod extends Octokit {
+  // The following are added because Octokit does not expose the hook.error, hook.before, and hook.after methods
+  hook: {
+    error: (
+      when: 'request',
+      callback: (error: OctokitError, options: RequestOptions) => void
+    ) => void;
+    before: (
+      when: 'request',
+      callback: (result: Result, options: RequestOptions) => void
+    ) => void;
+    after: (
+      when: 'request',
+      callback: (result: Result, options: RequestOptions) => void
+    ) => void;
+  };
+}
+
+interface Variables {
+  [key: string]: any;
+}
 
 interface ResponseWithDataArray<T> {
   data: T[];
@@ -14,13 +67,13 @@ interface ResponseWithDataArray<T> {
 
 interface ResponseWithMetaLink {
   meta: {
-    link: string
+    link: string;
   };
 }
 
-interface ResponseWithDataArrayAndMeta<T> extends ResponseWithDataArray<T>, ResponseWithMetaLink {
-
-}
+interface ResponseWithDataArrayAndMeta<T>
+  extends ResponseWithDataArray<T>,
+    ResponseWithMetaLink {}
 
 interface ResponseFromGetUserRepo extends ResponseWithMetaLink {
   data: RepoFromGetUserRepo[];
@@ -110,19 +163,20 @@ interface RepoNameWithParentRepo {
 
 interface RepoNameWithBranchesAndParent
   extends RepoNameWithBranches,
-  RepoNameWithParentRepo { }
+    RepoNameWithParentRepo {}
 
-const username = 'bendtherules';
+const username = 'rousan';
 
 interface ObjectWithPerPage {
   per_page?: number;
 }
 
 async function paginate<TFirstParam extends ObjectWithPerPage, TDataElement>(
-  method: (args: TFirstParam) => Promise<ResponseWithDataArrayAndMeta<TDataElement>>,
+  method: (
+    args: TFirstParam
+  ) => Promise<ResponseWithDataArrayAndMeta<TDataElement>>,
   args: TFirstParam
 ): Promise<ResponseWithDataArray<TDataElement>> {
-
   // Set per_page
   args.per_page = 100;
 
@@ -136,25 +190,27 @@ async function paginate<TFirstParam extends ObjectWithPerPage, TDataElement>(
   }
 
   return {
-    data
+    data,
   };
 }
 
 async function fetchRepoNameWithBranches(
   repoName: string
 ): Promise<RepoNameWithBranches> {
-  const params: rest.ReposGetBranchesParams = {
+  const params: Octokit.ReposGetBranchesParams = {
     owner: username,
     repo: repoName,
   };
 
-  const branchesResponse: ResponseWithDataArray<BranchFromGetBranches> =
-    await paginate(
-      (tmpFirstParam: rest.ReposGetBranchesParams): Promise<ResponseFromGetBranches> => {
-        return octokit.repos.getBranches(tmpFirstParam) as any as Promise<ResponseFromGetBranches>;
-      },
-      params
-    );
+  const branchesResponse: ResponseWithDataArray<
+    BranchFromGetBranches
+  > = await paginate((tmpFirstParam: Octokit.ReposGetBranchesParams): Promise<
+    ResponseFromGetBranches
+  > => {
+    return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
+      ResponseFromGetBranches
+    >;
+  }, params);
 
   return {
     repoName,
@@ -254,35 +310,42 @@ async function fetchNoneOfForkBranchesIsAhead(
 async function fetchUserIsNotContributor(
   repoName: string
 ): Promise<RepoNameWithUnusedFlag> {
-  const params: rest.ReposGetContributorsParams = {
+  const params: Octokit.ReposGetContributorsParams = {
     owner: username,
     repo: repoName,
     anon: '0',
   };
 
-  const responseFromGetContributors: ResponseWithDataArray<OwnerFromGetContributors> =
-    await paginate(
-      async (tmpFirstParam: rest.ReposGetContributorsParams): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
-        // Modify getContributors to return empty contributor data array instead of undefined for empty repos
-        const response = await (octokit.repos.getContributors(tmpFirstParam) as any as Promise<ResponseFromGetContributors>);
+  const responseFromGetContributors: ResponseWithDataArray<
+    OwnerFromGetContributors
+  > = await paginate(
+    async (
+      tmpFirstParam: Octokit.ReposGetContributorsParams
+    ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
+      // Modify getContributors to return empty contributor data array instead of undefined for empty repos
+      const response = await ((octokit.repos.getContributors(
+        tmpFirstParam
+      ) as any) as Promise<ResponseFromGetContributors>);
 
-        let dataNormalized = response.data;
-        if (dataNormalized === undefined) {
-          dataNormalized = [];
-        }
+      let dataNormalized = response.data;
+      if (dataNormalized === undefined) {
+        dataNormalized = [];
+      }
 
-        const responseNormalized: ResponseWithDataArrayAndMeta<OwnerFromGetContributors> = {
-          data: dataNormalized,
-          meta: response.meta
-        };
+      const responseNormalized: ResponseWithDataArrayAndMeta<
+        OwnerFromGetContributors
+      > = {
+        data: dataNormalized,
+        meta: response.meta,
+      };
 
-        return responseNormalized;
-      },
-      params
-    );
+      return responseNormalized;
+    },
+    params
+  );
 
   const contributors = responseFromGetContributors.data;
-  
+
   const matchingContributor = contributors.find(
     tmpContributor => tmpContributor.login === username
   );
@@ -295,17 +358,20 @@ async function fetchUserIsNotContributor(
 }
 
 async function fetchUnusedForkedRepos() {
-  const params: rest.ReposGetForUserParams = {
+  const params: Octokit.ReposGetForUserParams = {
     username,
-  }
+  };
 
-  const repos: ResponseWithDataArray<RepoFromGetUserRepo> =
-    await paginate(
-      (tmpFirstParam: rest.ReposGetForUserParams): Promise<ResponseFromGetUserRepo> => {
-        return octokit.repos.getForUser(tmpFirstParam) as any as Promise<ResponseFromGetUserRepo>;
-      },
-      params
-    );
+  const repos: ResponseWithDataArray<RepoFromGetUserRepo> = await paginate(
+    (
+      tmpFirstParam: Octokit.ReposGetForUserParams
+    ): Promise<ResponseFromGetUserRepo> => {
+      return (octokit.repos.getForUser(tmpFirstParam) as any) as Promise<
+        ResponseFromGetUserRepo
+      >;
+    },
+    params
+  );
 
   const forkedRepoNames = repos.data
     .filter(repo => repo.fork)
