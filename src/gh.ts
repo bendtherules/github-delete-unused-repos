@@ -536,17 +536,16 @@ fetchUnusedForkedRepos().then(unusedRepoNames => {
 // https://developer.github.com/v3/repos/commits/#compare-two-commits
 // https://octokit.github.io/rest.js/#api-Repos-compareCommits
 //
-// 4. If parent contains, then check if user is in contributor list (of forked repo) {Should not contain}
+// 4. If parent contains, then check if user is in contributor list (of either parent or forked repo) {Should not be present in either of them}
 // https://developer.github.com/v3/repos/#list-contributors
 // https://octokit.github.io/rest.js/#api-Repos-getContributors
 //
-// 5. Show marked repo names for review
+// 5. If not contributor, list commits on a repo filtered by author and check that its empty- for both parent and fork [Should be empty]
+// https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
 //
-// 6. Delete those repos
+// 6. Show marked repo names for review
+//
+// 7. Delete those repos
 // https://developer.github.com/v3/repos/#delete-a-repository
 // https://octokit.github.io/rest.js/#api-Repos-delete
 
-// TODO
-// In step 4, also check contributor list in parent repo
-// Add step 4.1, list commits on a repo filtered by author - for both parent and fork - should be empty
-// https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
