@@ -120,7 +120,7 @@ interface ObjectWithPerPage {
 }
 
 async function paginate<TFirstParam extends ObjectWithPerPage, TDataElement>(
-  method: (args: TFirstParam) => ResponseWithPaginationAndMeta<TDataElement>,
+  method: (args: TFirstParam) => Promise<ResponseWithPaginationAndMeta<TDataElement>>,
   args: TFirstParam
 ): Promise<ResponseWithDataArray<TDataElement>> {
 
@@ -151,8 +151,8 @@ async function fetchRepoNameWithBranches(
 
   const branchesResponse: ResponseWithDataArray<BranchFromGetBranches> =
     await paginate(
-      (tmpFirstParam: rest.ReposGetBranchesParams): ResponseFromGetBranches => {
-        return octokit.repos.getBranches(tmpFirstParam) as any as ResponseFromGetBranches;
+      (tmpFirstParam: rest.ReposGetBranchesParams): Promise<ResponseFromGetBranches> => {
+        return octokit.repos.getBranches(tmpFirstParam) as any as Promise<ResponseFromGetBranches>;
       },
       params
     );
@@ -289,8 +289,8 @@ async function fetchUnusedForkedRepos() {
 
   const repos: ResponseWithDataArray<RepoFromGetUserRepo> =
     await paginate(
-      (tmpFirstParam: rest.ReposGetForUserParams): ResponseFromGetUserRepo => {
-        return octokit.repos.getForUser(tmpFirstParam) as any as ResponseFromGetUserRepo;
+      (tmpFirstParam: rest.ReposGetForUserParams): Promise<ResponseFromGetUserRepo> => {
+        return octokit.repos.getForUser(tmpFirstParam) as any as Promise<ResponseFromGetUserRepo>;
       },
       params
     );
