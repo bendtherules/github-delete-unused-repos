@@ -435,7 +435,7 @@ async function fetchUnusedForkedRepos() {
     }
   }
 
-  const allRepoWithFlagMerged: RepoNameWithUnusedFlag[] = [];
+  const allRepoWithFlagTillStep4: RepoNameWithUnusedFlag[] = [];
 
   {
     const allPromiseRepoWithFlagFromCommit = allRepoNameWithBranchesAndParent.map(
@@ -496,7 +496,7 @@ async function fetchUnusedForkedRepos() {
 
         const tmpRepoName = tmpObjFromCommit.repoName;
 
-        allRepoWithFlagMerged.push({
+        allRepoWithFlagTillStep4.push({
           repoName: tmpRepoName,
           unused:
             tmpObjFromCommit.unused &&
@@ -507,7 +507,7 @@ async function fetchUnusedForkedRepos() {
     }
   }
 
-  const unusedRepoNames = allRepoWithFlagMerged
+  const unusedRepoNames = allRepoWithFlagTillStep4
     .filter(tmp => tmp.unused)
     .map(tmp => tmp.repoName);
 
@@ -548,4 +548,3 @@ fetchUnusedForkedRepos().then(unusedRepoNames => {
 // 7. Delete those repos
 // https://developer.github.com/v3/repos/#delete-a-repository
 // https://octokit.github.io/rest.js/#api-Repos-delete
-
