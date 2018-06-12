@@ -1,10 +1,11 @@
+import 'babel-polyfill';
 import { Greeter } from './greeter';
 // tslint:disable-next-line:ordered-imports
 import { fetchUnusedForkedRepos, runMain } from './gh';
 export * from './greeter';
 
 // tslint:disable-next-line:only-arrow-functions
-(function (currentWindow: Window) {
+(function(currentWindow: Window) {
   // execute when load index.js
 
   // tslint:disable-next-line:no-console

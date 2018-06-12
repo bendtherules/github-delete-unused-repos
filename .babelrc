@@ -3,14 +3,18 @@
         [
             "env",
             {
+                "useBuiltIns": "entry",
                 "modules": false,
                 "targets": {
                     "browsers": [
-                        "last 2 Chrome versions"
+                        "> 0.5%",
+                        "last 2 versions",
+                        "Firefox ESR",
+                        "not dead"
                     ]
                 }
             }
         ],
         "stage-2"
-    ]
+    ],
 }
