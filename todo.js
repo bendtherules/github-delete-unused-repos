@@ -12,5 +12,6 @@
  */
 
 /** 
-* @todo In webpack, enable uglify
+* 
+* @todo In webpack, enable uglify for minifying
 */ 
