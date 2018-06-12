@@ -1,5 +1,6 @@
-/*
-@TODO 1. Change babelrc browser support to :
+/**
+ * @todo Change babelrc browser support to support all modern browsers:
+
 ```
 "browsers": [
                         "> 1%",
@@ -7,8 +8,9 @@
                         "not ie <= 8"
                     ]
 ```
-*/
 
-/* 
-@TODO 2: In webpack, enable uglify
+ */
+
+/** 
+* @todo In webpack, enable uglify
 */ 
