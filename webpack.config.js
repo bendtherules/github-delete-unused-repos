@@ -22,10 +22,10 @@ module.exports = {
     ]
   },
   plugins: [
-    new webpack.optimize.UglifyJsPlugin({
-      include: /\.min\.js$/,
-      minimize: true
-    }) , 
+    // new webpack.optimize.UglifyJsPlugin({
+    //   include: /\.min\.js$/,
+    //   minimize: true
+    // }) , 
     new CopyWebpackPlugin([
       { from: 'demo/index.html', to: 'dist/' }
     ])

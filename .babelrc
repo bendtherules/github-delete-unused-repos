@@ -3,12 +3,14 @@
         [
             "env",
             {
+                "useBuiltIns": "entry",
                 "modules": false,
                 "targets": {
                     "browsers": [
-                        "> 1%",
+                        "> 0.5%",
                         "last 2 versions",
-                        "not ie <= 8"
+                        "Firefox ESR",
+                        "not dead"
                     ]
                 }
             }

@@ -73,7 +73,7 @@ interface ResponseWithMetaLink {
 
 interface ResponseWithDataArrayAndMeta<T>
   extends ResponseWithDataArray<T>,
-  ResponseWithMetaLink { }
+    ResponseWithMetaLink {}
 
 interface ResponseFromGetUserRepo extends ResponseWithMetaLink {
   data: RepoFromGetUserRepo[];
@@ -163,7 +163,7 @@ interface RepoNameWithParentRepo {
 
 interface RepoNameWithBranchesAndParent
   extends RepoNameWithBranches,
-  RepoNameWithParentRepo { }
+    RepoNameWithParentRepo {}
 
 const username = 'rousan';
 
@@ -204,13 +204,13 @@ async function fetchRepoNameWithBranches(
 
   const branchesResponse: ResponseWithDataArray<
     BranchFromGetBranches
-    > = await paginate((tmpFirstParam: Octokit.ReposGetBranchesParams): Promise<
+  > = await paginate((tmpFirstParam: Octokit.ReposGetBranchesParams): Promise<
+    ResponseFromGetBranches
+  > => {
+    return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
       ResponseFromGetBranches
-      > => {
-      return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
-        ResponseFromGetBranches
-        >;
-    }, params);
+    >;
+  }, params);
 
   return {
     repoName,
@@ -319,31 +319,31 @@ async function fetchUserIsNotContributor(
 
   const responseFromGetContributors: ResponseWithDataArray<
     OwnerFromGetContributors
-    > = await paginate(
-      async (
-        tmpFirstParam: Octokit.ReposGetContributorsParams
-      ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
-        // Modify getContributors to return empty contributor data array instead of undefined for empty repos
-        const response = await ((octokit.repos.getContributors(
-          tmpFirstParam
-        ) as any) as Promise<ResponseFromGetContributors>);
+  > = await paginate(
+    async (
+      tmpFirstParam: Octokit.ReposGetContributorsParams
+    ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
+      // Modify getContributors to return empty contributor data array instead of undefined for empty repos
+      const response = await ((octokit.repos.getContributors(
+        tmpFirstParam
+      ) as any) as Promise<ResponseFromGetContributors>);
 
-        let dataNormalized = response.data;
-        if (dataNormalized === undefined) {
-          dataNormalized = [];
-        }
+      let dataNormalized = response.data;
+      if (dataNormalized === undefined) {
+        dataNormalized = [];
+      }
 
-        const responseNormalized: ResponseWithDataArrayAndMeta<
-          OwnerFromGetContributors
-          > = {
-          data: dataNormalized,
-          meta: response.meta,
-        };
+      const responseNormalized: ResponseWithDataArrayAndMeta<
+        OwnerFromGetContributors
+      > = {
+        data: dataNormalized,
+        meta: response.meta,
+      };
 
-        return responseNormalized;
-      },
-      params
-    );
+      return responseNormalized;
+    },
+    params
+  );
 
   const contributors = responseFromGetContributors.data;
 
@@ -369,7 +369,7 @@ export async function fetchUnusedForkedRepos() {
     ): Promise<ResponseFromGetUserRepo> => {
       return (octokit.repos.getForUser(tmpFirstParam) as any) as Promise<
         ResponseFromGetUserRepo
-        >;
+      >;
     },
     params
   );
@@ -513,7 +513,6 @@ export async function fetchUnusedForkedRepos() {
 
   return unusedRepoNames;
 }
-
 
 export function runMain() {
   fetchUnusedForkedRepos().then(unusedRepoNames => {
