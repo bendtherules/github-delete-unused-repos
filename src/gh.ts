@@ -185,7 +185,7 @@ class GithubDetectUnusedRepos {
 
   public async fetchUnusedForkedRepos() {
     const params: Octokit.ReposGetForUserParams = {
-      this.username,
+      username: this.username,
     };
 
     const repos: ResponseWithDataArray<RepoFromGetUserRepo> = await this.paginate(

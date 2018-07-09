@@ -1,6 +1,6 @@
 import 'babel-polyfill';
 // tslint:disable-next-line:ordered-imports
-import { fetchUnusedForkedRepos, runMain } from './gh';
+import { runMain } from './gh';
 
 // tslint:disable-next-line:only-arrow-functions
 (function(currentWindow: Window) {
