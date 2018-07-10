@@ -78,7 +78,7 @@ interface ResponseWithMetaLink {
 
 interface ResponseWithDataArrayAndMeta<T>
   extends ResponseWithDataArray<T>,
-  ResponseWithMetaLink { }
+    ResponseWithMetaLink {}
 
 interface ResponseFromGetUserRepo extends ResponseWithMetaLink {
   data: RepoFromGetUserRepo[];
@@ -168,7 +168,7 @@ interface RepoNameWithParentRepo {
 
 interface RepoNameWithBranchesAndParent
   extends RepoNameWithBranches,
-  RepoNameWithParentRepo { }
+    RepoNameWithParentRepo {}
 
 interface ObjectWithPerPage {
   per_page?: number;
@@ -188,13 +188,15 @@ class GithubDetectUnusedRepos {
       username: this.username,
     };
 
-    const repos: ResponseWithDataArray<RepoFromGetUserRepo> = await this.paginate(
+    const repos: ResponseWithDataArray<
+      RepoFromGetUserRepo
+    > = await this.paginate(
       (
         tmpFirstParam: Octokit.ReposGetForUserParams
       ): Promise<ResponseFromGetUserRepo> => {
         return (octokit.repos.getForUser(tmpFirstParam) as any) as Promise<
           ResponseFromGetUserRepo
-          >;
+        >;
       },
       params
     );
@@ -277,7 +279,10 @@ class GithubDetectUnusedRepos {
 
       const allPromiseRepoWithFlagFromParentContrib = allRepoNameWithBranchesAndParent.map(
         ({ repoName, parentRepo }) => {
-          return this.fetchUserIsNotContributor(parentRepo.owner.login, repoName);
+          return this.fetchUserIsNotContributor(
+            parentRepo.owner.login,
+            repoName
+          );
         }
       );
 
@@ -305,7 +310,8 @@ class GithubDetectUnusedRepos {
         for (let index = 0; index < repoCount; index++) {
           const tmpObjFromCommit = allRepoWithFlagFromCommit[index];
           const tmpObjFromForkContrib = allRepoWithFlagFromForkContrib[index];
-          const tmpObjFromParentContrib = allRepoWithFlagFromParentContrib[index];
+          const tmpObjFromParentContrib =
+            allRepoWithFlagFromParentContrib[index];
 
           assert.strictEqual(
             tmpObjFromCommit.repoName,
@@ -348,7 +354,9 @@ class GithubDetectUnusedRepos {
     // Set per_page
     args.per_page = 100;
 
-    let response: ResponseWithDataArrayAndMeta<TDataElement> = await method(args);
+    let response: ResponseWithDataArrayAndMeta<TDataElement> = await method(
+      args
+    );
 
     // Concat all data
     let { data } = response;
@@ -372,13 +380,16 @@ class GithubDetectUnusedRepos {
 
     const branchesResponse: ResponseWithDataArray<
       BranchFromGetBranches
-      > = await this.paginate((tmpFirstParam: Octokit.ReposGetBranchesParams): Promise<
-        ResponseFromGetBranches
-        > => {
+    > = await this.paginate(
+      (
+        tmpFirstParam: Octokit.ReposGetBranchesParams
+      ): Promise<ResponseFromGetBranches> => {
         return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
           ResponseFromGetBranches
-          >;
-      }, params);
+        >;
+      },
+      params
+    );
 
     return {
       repoName,
@@ -487,31 +498,31 @@ class GithubDetectUnusedRepos {
 
     const responseFromGetContributors: ResponseWithDataArray<
       OwnerFromGetContributors
-      > = await this.paginate(
-        async (
-          tmpFirstParam: Octokit.ReposGetContributorsParams
-        ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
-          // Modify getContributors to return empty contributor data array instead of undefined for empty repos
-          const response = await ((octokit.repos.getContributors(
-            tmpFirstParam
-          ) as any) as Promise<ResponseFromGetContributors>);
+    > = await this.paginate(
+      async (
+        tmpFirstParam: Octokit.ReposGetContributorsParams
+      ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
+        // Modify getContributors to return empty contributor data array instead of undefined for empty repos
+        const response = await ((octokit.repos.getContributors(
+          tmpFirstParam
+        ) as any) as Promise<ResponseFromGetContributors>);
 
-          let dataNormalized = response.data;
-          if (dataNormalized === undefined) {
-            dataNormalized = [];
-          }
+        let dataNormalized = response.data;
+        if (dataNormalized === undefined) {
+          dataNormalized = [];
+        }
 
-          const responseNormalized: ResponseWithDataArrayAndMeta<
-            OwnerFromGetContributors
-            > = {
-            data: dataNormalized,
-            meta: response.meta,
-          };
+        const responseNormalized: ResponseWithDataArrayAndMeta<
+          OwnerFromGetContributors
+        > = {
+          data: dataNormalized,
+          meta: response.meta,
+        };
 
-          return responseNormalized;
-        },
-        params
-      );
+        return responseNormalized;
+      },
+      params
+    );
 
     const contributors = responseFromGetContributors.data;
 
@@ -526,8 +537,6 @@ class GithubDetectUnusedRepos {
     };
   }
 }
-
-
 
 export function runMain(username: string = 'bendtherules') {
   new GithubDetectUnusedRepos(username)
@@ -555,7 +564,7 @@ export function runMain(username: string = 'bendtherules') {
 // https://developer.github.com/v3/repos/commits/#compare-two-commits
 // https://octokit.github.io/rest.js/#api-Repos-compareCommits
 //
-// 4. If parent contains, then check if user is in contributor list (of either parent or forked repo) {Should not be present in either of them}
+// 4. Then check if user is in contributor list (of either parent or forked repo) {Should not be present in either of them}
 // https://developer.github.com/v3/repos/#list-contributors
 // https://octokit.github.io/rest.js/#api-Repos-getContributors
 //
