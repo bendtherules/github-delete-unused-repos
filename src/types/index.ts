@@ -8,15 +8,18 @@ interface RequestOptions {
     query?: string;
     variables?: Variables;
 }
+
 interface Result {
     headers: {
         status: string;
     };
 }
+
 interface OctokitError {
     code: number;
     status: string;
 }
+
 export interface OctokitMod extends Octokit {
     // The following are added because Octokit does not expose the hook.error, hook.before, and hook.after methods
     hook: {
@@ -25,29 +28,37 @@ export interface OctokitMod extends Octokit {
         after: (when: 'request', callback: (result: Result, options: RequestOptions) => void) => void;
     };
 }
+
 interface Variables {
     [key: string]: any;
 }
+
 export interface ResponseWithDataArray<T> {
     data: T[];
 }
+
 interface ResponseWithMetaLink {
     meta: {
         link: string;
     };
 }
+
 export interface ResponseWithDataArrayAndMeta<T> extends ResponseWithDataArray<T>, ResponseWithMetaLink {
 }
+
 export interface ResponseFromGetUserRepo extends ResponseWithMetaLink {
     data: RepoFromGetUserRepo[];
 }
+
 export interface ResponseFromGetBranches extends ResponseWithMetaLink {
     data: BranchFromGetBranches[];
 }
+
 export interface ResponseFromGetRepo {
     data: RepoFromGetRepo;
     meta: {};
 }
+
 export interface ResponseFromCompareCommits {
     data: {
         status: string;
@@ -56,9 +67,11 @@ export interface ResponseFromCompareCommits {
         total_commits: number;
     };
 }
+
 export interface ResponseFromGetContributors extends ResponseWithMetaLink {
     data: OwnerFromGetContributors[] | undefined;
 }
+
 export interface RepoFromGetUserRepo {
     default_branch: string;
     description: string;
@@ -73,6 +86,7 @@ export interface RepoFromGetUserRepo {
     pushed_at: string;
     url: string;
 }
+
 interface OwnerFromGetUserRepo {
     avatar_url: string;
     gravatar_id: string;
@@ -82,35 +96,45 @@ interface OwnerFromGetUserRepo {
     repos_url: string;
     type: UserType;
 }
+
 export type OwnerFromGetContributors = OwnerFromGetUserRepo;
+
 enum UserType {
     User = 'User'
 }
+
 export interface BranchFromGetBranches {
     name: string;
     commit: CommitFromGetBranches;
 }
+
 interface CommitFromGetBranches {
     sha: string;
     url: string;
 }
+
 interface RepoFromGetRepo {
     parent: RepoFromGetUserRepo;
 }
+
 export interface RepoNameWithUnusedFlag {
     repoName: string;
     unused: boolean;
 }
+
 export interface RepoNameWithBranches {
     repoName: string;
     branches: BranchFromGetBranches[];
 }
+
 export interface RepoNameWithParentRepo {
     repoName: string;
     parentRepo: RepoFromGetUserRepo;
 }
+
 export interface RepoNameWithBranchesAndParent extends RepoNameWithBranches, RepoNameWithParentRepo {
 }
+
 export interface ObjectWithPerPage {
     per_page?: number;
 }
