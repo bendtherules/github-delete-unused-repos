@@ -2,6 +2,8 @@ import * as Octokit from '@octokit/rest';
 import assert = require('assert');
 import Bottleneck from 'bottleneck';
 
+import { OctokitMod, ResponseWithDataArray, RepoFromGetUserRepo, ResponseFromGetUserRepo, RepoNameWithBranchesAndParent, RepoNameWithUnusedFlag, ObjectWithPerPage, ResponseWithDataArrayAndMeta, RepoNameWithBranches, BranchFromGetBranches, ResponseFromGetBranches, RepoNameWithParentRepo, ResponseFromGetRepo, ResponseFromCompareCommits, OwnerFromGetContributors, ResponseFromGetContributors } from './types';
+
 // +++ General init +++
 const octokit = new Octokit() as OctokitMod;
 
@@ -20,161 +22,8 @@ octokit.authenticate({
   key: '05e5f5ec65387c49137b',
   secret: '2228539a48032f0622d6c12a66f56253d0a30d60',
 });
-
 // --- End General init ---
 
-// +++ All typescript definitions +++
-
-interface RequestOptions {
-  method: string;
-  url: string;
-  headers: any;
-  query?: string;
-  variables?: Variables;
-}
-
-interface Result {
-  headers: {
-    status: string;
-  };
-}
-
-interface OctokitError {
-  code: number;
-  status: string;
-}
-
-interface OctokitMod extends Octokit {
-  // The following are added because Octokit does not expose the hook.error, hook.before, and hook.after methods
-  hook: {
-    error: (
-      when: 'request',
-      callback: (error: OctokitError, options: RequestOptions) => void
-    ) => void;
-    before: (
-      when: 'request',
-      callback: (result: Result, options: RequestOptions) => void
-    ) => void;
-    after: (
-      when: 'request',
-      callback: (result: Result, options: RequestOptions) => void
-    ) => void;
-  };
-}
-
-interface Variables {
-  [key: string]: any;
-}
-
-interface ResponseWithDataArray<T> {
-  data: T[];
-}
-
-interface ResponseWithMetaLink {
-  meta: {
-    link: string;
-  };
-}
-
-interface ResponseWithDataArrayAndMeta<T>
-  extends ResponseWithDataArray<T>,
-    ResponseWithMetaLink {}
-
-interface ResponseFromGetUserRepo extends ResponseWithMetaLink {
-  data: RepoFromGetUserRepo[];
-}
-
-interface ResponseFromGetBranches extends ResponseWithMetaLink {
-  data: BranchFromGetBranches[];
-}
-
-interface ResponseFromGetRepo {
-  data: RepoFromGetRepo;
-  meta: {};
-}
-
-interface ResponseFromCompareCommits {
-  data: {
-    status: string;
-    ahead_by: number;
-    behind_by: number;
-    total_commits: number;
-  };
-}
-
-interface ResponseFromGetContributors extends ResponseWithMetaLink {
-  data: OwnerFromGetContributors[] | undefined;
-}
-
-interface RepoFromGetUserRepo {
-  default_branch: string;
-  description: string;
-  fork: boolean;
-  full_name: string;
-  homepage: string;
-  id: number;
-  language: string;
-  name: string;
-  owner: OwnerFromGetUserRepo;
-  private: boolean;
-  pushed_at: string;
-  url: string;
-}
-
-interface OwnerFromGetUserRepo {
-  avatar_url: string;
-  gravatar_id: string;
-  html_url: string;
-  id: number;
-  login: string;
-  repos_url: string;
-  type: UserType;
-}
-
-type OwnerFromGetContributors = OwnerFromGetUserRepo;
-
-enum UserType {
-  User = 'User',
-}
-
-interface BranchFromGetBranches {
-  name: string;
-  commit: CommitFromGetBranches;
-}
-
-interface CommitFromGetBranches {
-  sha: string;
-  url: string;
-}
-
-interface RepoFromGetRepo {
-  parent: RepoFromGetUserRepo;
-}
-
-interface RepoNameWithUnusedFlag {
-  repoName: string;
-  unused: boolean;
-}
-
-interface RepoNameWithBranches {
-  repoName: string;
-  branches: BranchFromGetBranches[];
-}
-
-interface RepoNameWithParentRepo {
-  repoName: string;
-  parentRepo: RepoFromGetUserRepo;
-}
-
-interface RepoNameWithBranchesAndParent
-  extends RepoNameWithBranches,
-    RepoNameWithParentRepo {}
-
-interface ObjectWithPerPage {
-  per_page?: number;
-}
-
-// --- End all typescript definitions ---
 
 class GithubDetectUnusedRepos {
   private username: string;
@@ -188,18 +37,17 @@ class GithubDetectUnusedRepos {
       username: this.username,
     };
 
-    const repos: ResponseWithDataArray<
-      RepoFromGetUserRepo
-    > = await this.paginate(
-      (
-        tmpFirstParam: Octokit.ReposGetForUserParams
-      ): Promise<ResponseFromGetUserRepo> => {
-        return (octokit.repos.getForUser(tmpFirstParam) as any) as Promise<
-          ResponseFromGetUserRepo
-        >;
-      },
-      params
-    );
+    const repos: ResponseWithDataArray<RepoFromGetUserRepo> =
+      await this.paginate(
+        (
+          tmpFirstParam: Octokit.ReposGetForUserParams
+        ): Promise<ResponseFromGetUserRepo> => {
+          return (
+            octokit.repos.getForUser(tmpFirstParam) as any
+          ) as Promise<ResponseFromGetUserRepo>;
+        },
+        params
+      );
 
     const forkedRepoNames = repos.data
       .filter(repo => repo.fork)
@@ -380,16 +228,16 @@ class GithubDetectUnusedRepos {
 
     const branchesResponse: ResponseWithDataArray<
       BranchFromGetBranches
-    > = await this.paginate(
-      (
-        tmpFirstParam: Octokit.ReposGetBranchesParams
-      ): Promise<ResponseFromGetBranches> => {
-        return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
-          ResponseFromGetBranches
-        >;
-      },
-      params
-    );
+      > = await this.paginate(
+        (
+          tmpFirstParam: Octokit.ReposGetBranchesParams
+        ): Promise<ResponseFromGetBranches> => {
+          return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
+            ResponseFromGetBranches
+            >;
+        },
+        params
+      );
 
     return {
       repoName,
@@ -498,31 +346,31 @@ class GithubDetectUnusedRepos {
 
     const responseFromGetContributors: ResponseWithDataArray<
       OwnerFromGetContributors
-    > = await this.paginate(
-      async (
-        tmpFirstParam: Octokit.ReposGetContributorsParams
-      ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
-        // Modify getContributors to return empty contributor data array instead of undefined for empty repos
-        const response = await ((octokit.repos.getContributors(
-          tmpFirstParam
-        ) as any) as Promise<ResponseFromGetContributors>);
+      > = await this.paginate(
+        async (
+          tmpFirstParam: Octokit.ReposGetContributorsParams
+        ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
+          // Modify getContributors to return empty contributor data array instead of undefined for empty repos
+          const response = await ((octokit.repos.getContributors(
+            tmpFirstParam
+          ) as any) as Promise<ResponseFromGetContributors>);
 
-        let dataNormalized = response.data;
-        if (dataNormalized === undefined) {
-          dataNormalized = [];
-        }
+          let dataNormalized = response.data;
+          if (dataNormalized === undefined) {
+            dataNormalized = [];
+          }
 
-        const responseNormalized: ResponseWithDataArrayAndMeta<
-          OwnerFromGetContributors
-        > = {
-          data: dataNormalized,
-          meta: response.meta,
-        };
+          const responseNormalized: ResponseWithDataArrayAndMeta<
+            OwnerFromGetContributors
+            > = {
+            data: dataNormalized,
+            meta: response.meta,
+          };
 
-        return responseNormalized;
-      },
-      params
-    );
+          return responseNormalized;
+        },
+        params
+      );
 
     const contributors = responseFromGetContributors.data;
 
