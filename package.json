@@ -35,7 +35,8 @@
     "@octokit/rest": "^15.6.2",
     "babel-polyfill": "^6.26.0",
     "bottleneck": "^2.3.1",
-    "octonode": "^0.9.2"
+    "octonode": "^0.9.2",
+    "redux": "^4.0.0"
   },
   "devDependencies": {
     "@types/jest": "^22.0.1",
