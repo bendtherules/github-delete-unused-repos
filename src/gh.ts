@@ -2,7 +2,26 @@ import * as Octokit from '@octokit/rest';
 import assert = require('assert');
 import Bottleneck from 'bottleneck';
 
-import { OctokitMod, ResponseWithDataArray, RepoFromGetUserRepo, ResponseFromGetUserRepo, RepoNameWithBranchesAndParent, RepoNameWithUnusedFlag, ObjectWithPerPage, ResponseWithDataArrayAndMeta, RepoNameWithBranches, BranchFromGetBranches, ResponseFromGetBranches, RepoNameWithParentRepo, ResponseFromGetRepo, ResponseFromCompareCommits, OwnerFromGetContributors, ResponseFromGetContributors } from './types';
+import {
+  OctokitMod,
+  ResponseWithDataArray,
+  RepoFromGetUserRepo,
+  ResponseFromGetUserRepo,
+  RepoNameWithBranchesAndParent,
+  RepoNameWithUnusedFlag,
+  ObjectWithPerPage,
+  ResponseWithDataArrayAndMeta,
+  RepoNameWithBranches,
+  BranchFromGetBranches,
+  ResponseFromGetBranches,
+  RepoNameWithParentRepo,
+  ResponseFromGetRepo,
+  ResponseFromCompareCommits,
+  OwnerFromGetContributors,
+  ResponseFromGetContributors,
+} from './types';
+import { createAppStore, ActionsType, ApplicationState, ActionNames, FilterSteps, FilterStatus } from './store';
+import { Store } from 'redux';
 
 // +++ General init +++
 const octokit = new Octokit() as OctokitMod;
@@ -24,12 +43,21 @@ octokit.authenticate({
 });
 // --- End General init ---
 
-
 class GithubDetectUnusedRepos {
   private username: string;
+  reduxStore: Store<ApplicationState, ActionsType>;
 
   constructor(username: string) {
     this.username = username;
+    this.reduxStore = createAppStore();
+
+    // Update username in redux store
+    this.reduxStore.dispatch({
+      type: ActionNames.InitUserName,
+      payload: {
+        userName: username
+      }
+    });
   }
 
   public async fetchUnusedForkedRepos() {
@@ -37,17 +65,28 @@ class GithubDetectUnusedRepos {
       username: this.username,
     };
 
-    const repos: ResponseWithDataArray<RepoFromGetUserRepo> =
-      await this.paginate(
+    const repos: ResponseWithDataArray<
+      RepoFromGetUserRepo
+      > = await this.paginate(
         (
           tmpFirstParam: Octokit.ReposGetForUserParams
         ): Promise<ResponseFromGetUserRepo> => {
-          return (
-            octokit.repos.getForUser(tmpFirstParam) as any
-          ) as Promise<ResponseFromGetUserRepo>;
+          return (octokit.repos.getForUser(tmpFirstParam) as any) as Promise<
+            ResponseFromGetUserRepo
+            >;
         },
         params
       );
+
+    // Update all repo names in redux store
+    repos.data.forEach(repoData => {
+      this.reduxStore.dispatch({
+        type: ActionNames.InitRepo,
+        payload: {
+          repoName: repoData.name
+        }
+      })
+    });
 
     const forkedRepoNames = repos.data
       .filter(repo => repo.fork)
@@ -55,6 +94,35 @@ class GithubDetectUnusedRepos {
 
     // tslint:disable-next-line:no-console
     console.log(forkedRepoNames);
+
+    // Update fork filter in redux store
+    repos.data.forEach(repoData => {
+      if (forkedRepoNames.includes(repoData.name)) {
+
+        this.reduxStore.dispatch({
+          type: ActionNames.AddRepoFilterStatus,
+          payload: {
+            repoName: repoData.name,
+            filterStep: FilterSteps.forked,
+            filterState: {
+              status: FilterStatus.pass
+            }
+          }
+        });
+
+      } else {
+        this.reduxStore.dispatch({
+          type: ActionNames.AddRepoFilterStatus,
+          payload: {
+            repoName: repoData.name,
+            filterStep: FilterSteps.forked,
+            filterState: {
+              status: FilterStatus.fail
+            }
+          }
+        });
+      }
+    });
 
     const allPromiseRepoNameWithBranches = forkedRepoNames.map(repoName => {
       return this.fetchRepoNameWithBranches(repoName);
@@ -134,7 +202,7 @@ class GithubDetectUnusedRepos {
         }
       );
 
-      const allRepoWithFlagFromCommit: RepoNameWithUnusedFlag[] = await Promise.all(
+      const allRepoWithFlagFromCommitAhead: RepoNameWithUnusedFlag[] = await Promise.all(
         allPromiseRepoWithFlagFromCommit
       );
 
@@ -147,22 +215,70 @@ class GithubDetectUnusedRepos {
       );
 
       {
+        // Update redux state for these 3 filters
+        allRepoWithFlagFromCommitAhead.forEach(tmp => {
+          this.reduxStore.dispatch(
+            {
+              type: ActionNames.AddRepoFilterStatus,
+              payload:{
+                repoName: tmp.repoName,
+                filterStep: FilterSteps.eachBranchBehindOrEven,
+                filterState:{
+                  status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
+                }
+              }
+            }
+          )
+        });
+
+        allRepoWithFlagFromForkContrib.forEach(tmp => {
+          this.reduxStore.dispatch(
+            {
+              type: ActionNames.AddRepoFilterStatus,
+              payload:{
+                repoName: tmp.repoName,
+                filterStep: FilterSteps.notForkContributor,
+                filterState:{
+                  status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
+                }
+              }
+            }
+          )
+        });
+
+        allRepoWithFlagFromParentContrib.forEach(tmp => {
+          this.reduxStore.dispatch(
+            {
+              type: ActionNames.AddRepoFilterStatus,
+              payload:{
+                repoName: tmp.repoName,
+                filterStep: FilterSteps.notParentContributor,
+                filterState:{
+                  status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
+                }
+              }
+            }
+          )
+        });
+      }
+
+      {
         assert.strictEqual(
-          allRepoWithFlagFromCommit.length,
+          allRepoWithFlagFromCommitAhead.length,
           allRepoWithFlagFromForkContrib.length,
           'Length of `allRepoWithFlagFromCommit` and `allRepoWithFlagFromContrib` should be same'
         );
 
-        const repoCount = allRepoWithFlagFromCommit.length;
+        const repoCount = allRepoWithFlagFromCommitAhead.length;
 
         for (let index = 0; index < repoCount; index++) {
-          const tmpObjFromCommit = allRepoWithFlagFromCommit[index];
+          const tmpObjFromCommitAhead = allRepoWithFlagFromCommitAhead[index];
           const tmpObjFromForkContrib = allRepoWithFlagFromForkContrib[index];
           const tmpObjFromParentContrib =
             allRepoWithFlagFromParentContrib[index];
 
           assert.strictEqual(
-            tmpObjFromCommit.repoName,
+            tmpObjFromCommitAhead.repoName,
             tmpObjFromForkContrib.repoName,
             'Reponame from same index of `allRepoWithFlagFromCommit` and `allRepoWithFlagFromContrib` should be same'
           );
@@ -173,12 +289,12 @@ class GithubDetectUnusedRepos {
             'Reponame from same index of `tmpObjFromForkContrib` and `tmpObjFromParentContrib` should be same'
           );
 
-          const tmpRepoName = tmpObjFromCommit.repoName;
+          const tmpRepoName = tmpObjFromCommitAhead.repoName;
 
           allRepoWithFlagTillStep4.push({
             repoName: tmpRepoName,
             unused:
-              tmpObjFromCommit.unused &&
+              tmpObjFromCommitAhead.unused &&
               tmpObjFromForkContrib.unused &&
               tmpObjFromParentContrib.unused,
           });

@@ -18,8 +18,10 @@ export namespace FailReasons {
 }
 
 export enum FilterSteps {
+  forked = 'forked',
   eachBranchBehindOrEven = 'eachBranchBehindOrEven',
-  notContributor = 'notContributor',
+  notForkContributor = 'notForkContributor',
+  notParentContributor = 'notParentContributor',
   noCommits = 'noCommits',
 }
 
@@ -30,18 +32,25 @@ export enum FilterStatus {
 }
 
 export interface RepoFilterState {
+  [FilterSteps.forked]: {
+    status: FilterStatus;
+  };
   [FilterSteps.eachBranchBehindOrEven]: {
     status: FilterStatus;
-    failReason?: FailReasons.EachBranchBehindOrEven;
-    failBranchName?: string;
+    // failReason?: FailReasons.EachBranchBehindOrEven;
+    // failBranchName?: string;
   };
-  [FilterSteps.notContributor]: {
+  [FilterSteps.notForkContributor]: {
     status: FilterStatus;
-    failReason?: FailReasons.NotContributor;
+    // failReason?: FailReasons.NotContributor;
+  };
+  [FilterSteps.notParentContributor]: {
+    status: FilterStatus;
+    // failReason?: FailReasons.NotContributor;
   };
   [FilterSteps.noCommits]: {
     status: FilterStatus;
-    failReason?: FailReasons.NoCommits;
+    // failReason?: FailReasons.NoCommits;
   };
 }
 

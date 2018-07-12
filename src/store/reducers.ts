@@ -19,10 +19,16 @@ export const reducer: Reducer<ApplicationState, ActionsType> = (state: Applicati
                 const clonedAppState = new Map(state.repoStateMap);
                 clonedAppState.set(action.payload.repoName, {
                     filterState: {
+                        forked: {
+                            status: FilterStatus.waiting
+                        },
                         eachBranchBehindOrEven: {
                             status: FilterStatus.waiting
                         },
-                        notContributor: {
+                        notForkContributor: {
+                            status: FilterStatus.waiting
+                        },
+                        notParentContributor: {
                             status: FilterStatus.waiting
                         },
                         noCommits: {
