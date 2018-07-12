@@ -220,10 +220,10 @@ class GithubDetectUnusedRepos {
           this.reduxStore.dispatch(
             {
               type: ActionNames.AddRepoFilterStatus,
-              payload:{
+              payload: {
                 repoName: tmp.repoName,
                 filterStep: FilterSteps.eachBranchBehindOrEven,
-                filterState:{
+                filterState: {
                   status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
                 }
               }
@@ -235,10 +235,10 @@ class GithubDetectUnusedRepos {
           this.reduxStore.dispatch(
             {
               type: ActionNames.AddRepoFilterStatus,
-              payload:{
+              payload: {
                 repoName: tmp.repoName,
                 filterStep: FilterSteps.notForkContributor,
-                filterState:{
+                filterState: {
                   status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
                 }
               }
@@ -250,10 +250,10 @@ class GithubDetectUnusedRepos {
           this.reduxStore.dispatch(
             {
               type: ActionNames.AddRepoFilterStatus,
-              payload:{
+              payload: {
                 repoName: tmp.repoName,
                 filterStep: FilterSteps.notParentContributor,
-                filterState:{
+                filterState: {
                   status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
                 }
               }
@@ -503,12 +503,17 @@ class GithubDetectUnusedRepos {
 }
 
 export function runMain(username: string = 'bendtherules') {
-  new GithubDetectUnusedRepos(username)
+  const instance = new GithubDetectUnusedRepos(username);
+  
+  instance
     .fetchUnusedForkedRepos()
     .then(unusedRepoNames => {
       // tslint:disable-next-line:no-console
       console.log(unusedRepoNames);
+      console.log(instance.reduxStore.getState());
     });
+
+  
 }
 
 // Next steps
