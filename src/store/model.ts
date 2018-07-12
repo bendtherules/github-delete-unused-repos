@@ -26,9 +26,9 @@ export enum FilterSteps {
 }
 
 export enum FilterStatus {
-  'pass',
-  'fail',
-  'waiting',
+  pass = 'pass',
+  fail = 'fail',
+  waiting = 'waiting',
 }
 
 export interface RepoFilterState {
@@ -59,7 +59,7 @@ export type RepoFilterStateMap = Map<
   {
     filterState: RepoFilterState;
   }
->;
+  >;
 
 export interface ApplicationState {
   username: string;
