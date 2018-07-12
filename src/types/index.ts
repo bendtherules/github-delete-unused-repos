@@ -1,7 +1,7 @@
 import * as Octokit from '@octokit/rest';
 
 // +++ All typescript definitions +++
-interface RequestOptions {
+export interface RequestOptions {
   method: string;
   url: string;
   headers: any;
@@ -9,13 +9,13 @@ interface RequestOptions {
   variables?: Variables;
 }
 
-interface Result {
+export interface Result {
   headers: {
     status: string;
   };
 }
 
-interface OctokitError {
+export interface OctokitError {
   code: number;
   status: string;
 }
@@ -38,7 +38,7 @@ export interface OctokitMod extends Octokit {
   };
 }
 
-interface Variables {
+export interface Variables {
   [key: string]: any;
 }
 
@@ -46,7 +46,7 @@ export interface ResponseWithDataArray<T> {
   data: T[];
 }
 
-interface ResponseWithMetaLink {
+export interface ResponseWithMetaLink {
   meta: {
     link: string;
   };
@@ -97,7 +97,7 @@ export interface RepoFromGetUserRepo {
   url: string;
 }
 
-interface OwnerFromGetUserRepo {
+export interface OwnerFromGetUserRepo {
   avatar_url: string;
   gravatar_id: string;
   html_url: string;
@@ -109,7 +109,7 @@ interface OwnerFromGetUserRepo {
 
 export type OwnerFromGetContributors = OwnerFromGetUserRepo;
 
-enum UserType {
+export enum UserType {
   User = 'User',
 }
 
@@ -118,12 +118,12 @@ export interface BranchFromGetBranches {
   commit: CommitFromGetBranches;
 }
 
-interface CommitFromGetBranches {
+export interface CommitFromGetBranches {
   sha: string;
   url: string;
 }
 
-interface RepoFromGetRepo {
+export interface RepoFromGetRepo {
   parent: RepoFromGetUserRepo;
 }
 
