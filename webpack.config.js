@@ -16,9 +16,13 @@ module.exports = {
   },
   module: {
     rules: [
-      { test: /\.js$/, loader: 'babel-loader' },
+      { test: /\.js$/, loader: 'babel-loader', exclude: /node_modules/ },
       // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
-      { test: /\.tsx?$/, loader: 'babel-loader!ts-loader' }
+      { test: /\.tsx?$/, loader: 'babel-loader!ts-loader', exclude: /node_modules/  },
+      {
+        test:/\.css$/,
+        use:['style-loader','css-loader']
+      },
     ]
   },
   plugins: [
