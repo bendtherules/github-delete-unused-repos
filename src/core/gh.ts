@@ -20,7 +20,14 @@ import {
   OwnerFromGetContributors,
   ResponseFromGetContributors,
 } from './types';
-import { createAppStore, ActionsType, ApplicationState, ActionNames, FilterSteps, FilterStatus } from './store';
+import {
+  createAppStore,
+  ActionsType,
+  ApplicationState,
+  ActionNames,
+  FilterSteps,
+  FilterStatus,
+} from './store';
 import { Store } from 'redux';
 
 // +++ General init +++
@@ -43,20 +50,20 @@ octokit.authenticate({
 });
 // --- End General init ---
 
+const defaultStore: Store<ApplicationState, ActionsType> = createAppStore();
+
 class GithubDetectUnusedRepos {
   private username: string;
-  reduxStore: Store<ApplicationState, ActionsType>;
 
   constructor(username: string) {
     this.username = username;
-    this.reduxStore = createAppStore();
 
     // Update username in redux store
-    this.reduxStore.dispatch({
+    defaultStore.dispatch({
       type: ActionNames.InitUserName,
       payload: {
-        userName: username
-      }
+        userName: username,
+      },
     });
   }
 
@@ -67,25 +74,25 @@ class GithubDetectUnusedRepos {
 
     const repos: ResponseWithDataArray<
       RepoFromGetUserRepo
-      > = await this.paginate(
-        (
-          tmpFirstParam: Octokit.ReposGetForUserParams
-        ): Promise<ResponseFromGetUserRepo> => {
-          return (octokit.repos.getForUser(tmpFirstParam) as any) as Promise<
-            ResponseFromGetUserRepo
-            >;
-        },
-        params
-      );
+    > = await this.paginate(
+      (
+        tmpFirstParam: Octokit.ReposGetForUserParams
+      ): Promise<ResponseFromGetUserRepo> => {
+        return (octokit.repos.getForUser(tmpFirstParam) as any) as Promise<
+          ResponseFromGetUserRepo
+        >;
+      },
+      params
+    );
 
     // Update all repo names in redux store
     repos.data.forEach(repoData => {
-      this.reduxStore.dispatch({
+      defaultStore.dispatch({
         type: ActionNames.InitRepo,
         payload: {
-          repoName: repoData.name
-        }
-      })
+          repoName: repoData.name,
+        },
+      });
     });
 
     const forkedRepoNames = repos.data
@@ -98,28 +105,26 @@ class GithubDetectUnusedRepos {
     // Update fork filter in redux store
     repos.data.forEach(repoData => {
       if (forkedRepoNames.includes(repoData.name)) {
-
-        this.reduxStore.dispatch({
+        defaultStore.dispatch({
           type: ActionNames.AddRepoFilterStatus,
           payload: {
             repoName: repoData.name,
             filterStep: FilterSteps.forked,
             filterState: {
-              status: FilterStatus.pass
-            }
-          }
+              status: FilterStatus.pass,
+            },
+          },
         });
-
       } else {
-        this.reduxStore.dispatch({
+        defaultStore.dispatch({
           type: ActionNames.AddRepoFilterStatus,
           payload: {
             repoName: repoData.name,
             filterStep: FilterSteps.forked,
             filterState: {
-              status: FilterStatus.fail
-            }
-          }
+              status: FilterStatus.fail,
+            },
+          },
         });
       }
     });
@@ -217,48 +222,42 @@ class GithubDetectUnusedRepos {
       {
         // Update redux state for these 3 filters
         allRepoWithFlagFromCommitAhead.forEach(tmp => {
-          this.reduxStore.dispatch(
-            {
-              type: ActionNames.AddRepoFilterStatus,
-              payload: {
-                repoName: tmp.repoName,
-                filterStep: FilterSteps.eachBranchBehindOrEven,
-                filterState: {
-                  status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
-                }
-              }
-            }
-          )
+          defaultStore.dispatch({
+            type: ActionNames.AddRepoFilterStatus,
+            payload: {
+              repoName: tmp.repoName,
+              filterStep: FilterSteps.eachBranchBehindOrEven,
+              filterState: {
+                status: tmp.unused ? FilterStatus.pass : FilterStatus.fail,
+              },
+            },
+          });
         });
 
         allRepoWithFlagFromForkContrib.forEach(tmp => {
-          this.reduxStore.dispatch(
-            {
-              type: ActionNames.AddRepoFilterStatus,
-              payload: {
-                repoName: tmp.repoName,
-                filterStep: FilterSteps.notForkContributor,
-                filterState: {
-                  status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
-                }
-              }
-            }
-          )
+          defaultStore.dispatch({
+            type: ActionNames.AddRepoFilterStatus,
+            payload: {
+              repoName: tmp.repoName,
+              filterStep: FilterSteps.notForkContributor,
+              filterState: {
+                status: tmp.unused ? FilterStatus.pass : FilterStatus.fail,
+              },
+            },
+          });
         });
 
         allRepoWithFlagFromParentContrib.forEach(tmp => {
-          this.reduxStore.dispatch(
-            {
-              type: ActionNames.AddRepoFilterStatus,
-              payload: {
-                repoName: tmp.repoName,
-                filterStep: FilterSteps.notParentContributor,
-                filterState: {
-                  status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
-                }
-              }
-            }
-          )
+          defaultStore.dispatch({
+            type: ActionNames.AddRepoFilterStatus,
+            payload: {
+              repoName: tmp.repoName,
+              filterStep: FilterSteps.notParentContributor,
+              filterState: {
+                status: tmp.unused ? FilterStatus.pass : FilterStatus.fail,
+              },
+            },
+          });
         });
       }
 
@@ -297,6 +296,21 @@ class GithubDetectUnusedRepos {
               tmpObjFromCommitAhead.unused &&
               tmpObjFromForkContrib.unused &&
               tmpObjFromParentContrib.unused,
+          });
+
+          allRepoWithFlagTillStep4.forEach(tmp => {
+            defaultStore.dispatch(
+              {
+                type: ActionNames.AddRepoFilterStatus,
+                payload: {
+                  repoName: tmp.repoName,
+                  filterStep: FilterSteps.noCommits,
+                  filterState: {
+                    status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
+                  }
+                }
+              }
+            )
           });
         }
       }
@@ -344,16 +358,16 @@ class GithubDetectUnusedRepos {
 
     const branchesResponse: ResponseWithDataArray<
       BranchFromGetBranches
-      > = await this.paginate(
-        (
-          tmpFirstParam: Octokit.ReposGetBranchesParams
-        ): Promise<ResponseFromGetBranches> => {
-          return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
-            ResponseFromGetBranches
-            >;
-        },
-        params
-      );
+    > = await this.paginate(
+      (
+        tmpFirstParam: Octokit.ReposGetBranchesParams
+      ): Promise<ResponseFromGetBranches> => {
+        return (octokit.repos.getBranches(tmpFirstParam) as any) as Promise<
+          ResponseFromGetBranches
+        >;
+      },
+      params
+    );
 
     return {
       repoName,
@@ -462,31 +476,31 @@ class GithubDetectUnusedRepos {
 
     const responseFromGetContributors: ResponseWithDataArray<
       OwnerFromGetContributors
-      > = await this.paginate(
-        async (
-          tmpFirstParam: Octokit.ReposGetContributorsParams
-        ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
-          // Modify getContributors to return empty contributor data array instead of undefined for empty repos
-          const response = await ((octokit.repos.getContributors(
-            tmpFirstParam
-          ) as any) as Promise<ResponseFromGetContributors>);
+    > = await this.paginate(
+      async (
+        tmpFirstParam: Octokit.ReposGetContributorsParams
+      ): Promise<ResponseWithDataArrayAndMeta<OwnerFromGetContributors>> => {
+        // Modify getContributors to return empty contributor data array instead of undefined for empty repos
+        const response = await ((octokit.repos.getContributors(
+          tmpFirstParam
+        ) as any) as Promise<ResponseFromGetContributors>);
 
-          let dataNormalized = response.data;
-          if (dataNormalized === undefined) {
-            dataNormalized = [];
-          }
+        let dataNormalized = response.data;
+        if (dataNormalized === undefined) {
+          dataNormalized = [];
+        }
 
-          const responseNormalized: ResponseWithDataArrayAndMeta<
-            OwnerFromGetContributors
-            > = {
-            data: dataNormalized,
-            meta: response.meta,
-          };
+        const responseNormalized: ResponseWithDataArrayAndMeta<
+          OwnerFromGetContributors
+        > = {
+          data: dataNormalized,
+          meta: response.meta,
+        };
 
-          return responseNormalized;
-        },
-        params
-      );
+        return responseNormalized;
+      },
+      params
+    );
 
     const contributors = responseFromGetContributors.data;
 
@@ -502,19 +516,17 @@ class GithubDetectUnusedRepos {
   }
 }
 
-export function runMain(username: string = 'bendtherules') {
+function runMain(username: string = 'bendtherules') {
   const instance = new GithubDetectUnusedRepos(username);
-  
-  instance
-    .fetchUnusedForkedRepos()
-    .then(unusedRepoNames => {
-      // tslint:disable-next-line:no-console
-      console.log(unusedRepoNames);
-      console.log(instance.reduxStore.getState());
-    });
 
-  
+  instance.fetchUnusedForkedRepos().then(unusedRepoNames => {
+    // tslint:disable-next-line:no-console
+    console.log(unusedRepoNames);
+    console.log(defaultStore.getState());
+  });
 }
+
+export { defaultStore, runMain };
 
 // Next steps
 //

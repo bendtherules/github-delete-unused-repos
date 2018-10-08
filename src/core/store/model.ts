@@ -59,7 +59,7 @@ export type RepoFilterStateMap = Map<
   {
     filterState: RepoFilterState;
   }
-  >;
+>;
 
 export interface ApplicationState {
   username: string;

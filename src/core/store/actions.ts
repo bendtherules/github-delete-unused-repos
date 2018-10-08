@@ -29,6 +29,6 @@ export interface AddRepoFilterStatusArgs
 }
 
 export type ActionsType =
-  InitUserNameArgs
+  | InitUserNameArgs
   | InitRepoArgs
   | AddRepoFilterStatusArgs;

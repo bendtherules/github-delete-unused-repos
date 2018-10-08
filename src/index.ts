@@ -1,6 +1,6 @@
 import 'babel-polyfill';
 // tslint:disable-next-line:ordered-imports
-import { runMain } from './gh';
+import { runMain } from './core/gh';
 
 // tslint:disable-next-line:only-arrow-functions
 (function(currentWindow: Window) {
