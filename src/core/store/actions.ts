@@ -21,7 +21,7 @@ export interface InitRepoArgs extends Action<ActionNames.InitRepo> {
 
 export interface AddRepoFilterStatusArgs
   extends Action<ActionNames.AddRepoFilterStatus> {
-  payload: {
+  payload: { 
     repoName: string;
     filterStep: FilterSteps;
     filterState: RepoFilterState[FilterSteps];
