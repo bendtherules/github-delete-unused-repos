@@ -40,7 +40,8 @@
     "react-dom": "^16.5.2",
     "react-redux": "^5.0.7",
     "react-table": "^6.8.6",
-    "redux": "^4.0.0"
+    "redux": "^4.0.0",
+    "redux-devtools-extension": "^2.13.5"
   },
   "devDependencies": {
     "@types/jest": "^22.0.1",

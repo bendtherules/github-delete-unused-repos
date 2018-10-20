@@ -1,4 +1,6 @@
 import { Reducer, createStore, Store } from 'redux';
+import { devToolsEnhancer } from 'redux-devtools-extension';
+
 import { ApplicationState, FilterStatus, RepoFilterState } from './model';
 import {
   ActionNames,
@@ -74,6 +76,9 @@ export const reducer: Reducer<ApplicationState, ActionsType> = (
 export function createAppStore(): Store<ApplicationState, ActionsType> {
   return (createStore<ApplicationState, ActionsType, {}, {}>(
     reducer,
-    initialState
+    initialState,
+    devToolsEnhancer({
+      serialize: true,
+    })
   ) as any) as Store<ApplicationState, ActionsType>;
 }
