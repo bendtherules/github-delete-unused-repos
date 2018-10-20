@@ -1,7 +1,7 @@
 import { Reducer, createStore, Store } from 'redux';
 import { devToolsEnhancer } from 'redux-devtools-extension';
 
-import { ApplicationState, FilterStatus, RepoFilterState } from './model';
+import { ApplicationState, FilterStatus, RepoFilterState, FilterSteps } from './model';
 import {
   ActionNames,
   InitUserNameArgs,
@@ -9,6 +9,26 @@ import {
   AddRepoFilterStatusArgs,
   ActionsType,
 } from './actions';
+
+
+function calculateAggregateStatus(repoFilterState: RepoFilterState) {
+  let aggregatedStatus = FilterStatus.pass;
+
+  const filterStepValues = Object.values(FilterSteps) as FilterSteps[];
+
+
+  for (const stepName of filterStepValues) {
+    const stepStatus = repoFilterState[stepName].status;
+    if (stepStatus === FilterStatus.fail) {
+      aggregatedStatus = FilterStatus.fail;
+      break;
+    } else if (stepStatus === FilterStatus.waiting) {
+      aggregatedStatus = FilterStatus.waiting;
+    }
+  }
+
+  return aggregatedStatus;
+}
 
 export const initialState: ApplicationState = {
   username: '',
@@ -23,7 +43,7 @@ export const reducer: Reducer<ApplicationState, ActionsType> = (
   // all the cases handled.
   switch (action.type) {
     case ActionNames.InitUserName:
-      return { ...state, username: action.payload.userName };
+      return { ...initialState, username: action.payload.userName };
 
     case ActionNames.InitRepo: {
       const clonedAppState = new Map(state.repoStateMap);
@@ -44,6 +64,9 @@ export const reducer: Reducer<ApplicationState, ActionsType> = (
           noCommits: {
             status: FilterStatus.waiting,
           },
+          aggregated: {
+            status: FilterStatus.waiting,
+          },
         },
       });
       return { ...state, repoStateMap: clonedAppState };
@@ -54,13 +77,16 @@ export const reducer: Reducer<ApplicationState, ActionsType> = (
         JSON.stringify(clonedAppState.get(action.payload.repoName))
       ) as
         | {
-            filterState: RepoFilterState;
-          }
+          filterState: RepoFilterState;
+        }
         | undefined;
 
       if (clonedRepoState !== undefined) {
         clonedRepoState.filterState[action.payload.filterStep] =
           action.payload.filterState;
+
+        clonedRepoState.filterState[FilterSteps.aggregated].status =
+          calculateAggregateStatus(clonedRepoState.filterState);
 
         clonedAppState.set(action.payload.repoName, clonedRepoState);
         return { ...state, repoStateMap: clonedAppState };
