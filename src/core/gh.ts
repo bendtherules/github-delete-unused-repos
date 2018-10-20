@@ -299,18 +299,16 @@ class GithubDetectUnusedRepos {
           });
 
           allRepoWithFlagTillStep4.forEach(tmp => {
-            defaultStore.dispatch(
-              {
-                type: ActionNames.AddRepoFilterStatus,
-                payload: {
-                  repoName: tmp.repoName,
-                  filterStep: FilterSteps.noCommits,
-                  filterState: {
-                    status: tmp.unused ? FilterStatus.pass : FilterStatus.fail
-                  }
-                }
-              }
-            )
+            defaultStore.dispatch({
+              type: ActionNames.AddRepoFilterStatus,
+              payload: {
+                repoName: tmp.repoName,
+                filterStep: FilterSteps.noCommits,
+                filterState: {
+                  status: tmp.unused ? FilterStatus.pass : FilterStatus.fail,
+                },
+              },
+            });
           });
         }
       }
