@@ -57,6 +57,9 @@ export class App extends React.Component<AppPropTypes, { username: string | unde
       }, {
         Header: FilterSteps.noCommits,
         accessor: `filterState.${FilterSteps.noCommits}.status`
+      }, {
+        Header: FilterSteps.aggregated,
+        accessor: `filterState.${FilterSteps.aggregated}.status`
       },
     ];
 

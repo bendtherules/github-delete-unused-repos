@@ -23,6 +23,7 @@ export enum FilterSteps {
   notForkContributor = 'notForkContributor',
   notParentContributor = 'notParentContributor',
   noCommits = 'noCommits',
+  aggregated = 'aggregated',
 }
 
 export enum FilterStatus {
@@ -49,6 +50,10 @@ export interface RepoFilterState {
     // failReason?: FailReasons.NotContributor;
   };
   [FilterSteps.noCommits]: {
+    status: FilterStatus;
+    // failReason?: FailReasons.NoCommits;
+  };
+  [FilterSteps.aggregated]: {
     status: FilterStatus;
     // failReason?: FailReasons.NoCommits;
   };
