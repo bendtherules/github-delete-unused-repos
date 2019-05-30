@@ -1,7 +1,12 @@
 import { Reducer, createStore, Store } from 'redux';
 import { devToolsEnhancer } from 'redux-devtools-extension';
 
-import { ApplicationState, FilterStatus, RepoFilterState, FilterSteps } from './model';
+import {
+  ApplicationState,
+  FilterStatus,
+  RepoFilterState,
+  FilterSteps,
+} from './model';
 import {
   ActionNames,
   InitUserNameArgs,
@@ -10,12 +15,10 @@ import {
   ActionsType,
 } from './actions';
 
-
 function calculateAggregateStatus(repoFilterState: RepoFilterState) {
   let aggregatedStatus = FilterStatus.pass;
 
   const filterStepValues = Object.values(FilterSteps) as FilterSteps[];
-
 
   for (const stepName of filterStepValues) {
     const stepStatus = repoFilterState[stepName].status;
@@ -77,16 +80,17 @@ export const reducer: Reducer<ApplicationState, ActionsType> = (
         JSON.stringify(clonedAppState.get(action.payload.repoName))
       ) as
         | {
-          filterState: RepoFilterState;
-        }
+            filterState: RepoFilterState;
+          }
         | undefined;
 
       if (clonedRepoState !== undefined) {
         clonedRepoState.filterState[action.payload.filterStep] =
           action.payload.filterState;
 
-        clonedRepoState.filterState[FilterSteps.aggregated].status =
-          calculateAggregateStatus(clonedRepoState.filterState);
+        clonedRepoState.filterState[
+          FilterSteps.aggregated
+        ].status = calculateAggregateStatus(clonedRepoState.filterState);
 
         clonedAppState.set(action.payload.repoName, clonedRepoState);
         return { ...state, repoStateMap: clonedAppState };
