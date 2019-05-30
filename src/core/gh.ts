@@ -1,6 +1,5 @@
 import * as Octokit from '@octokit/rest';
 import assert = require('assert');
-import Bottleneck from 'bottleneck';
 
 import {
   OctokitMod,
@@ -34,13 +33,7 @@ import { Store } from 'redux';
 const octokit = new Octokit() as OctokitMod;
 
 // Add rate limiter
-const limiter = new Bottleneck({
-  maxConcurrent: 10,
-  minTime: 50,
-});
 
-const noop = () => Promise.resolve();
-octokit.hook.before('request', limiter.schedule.bind(limiter, noop));
 
 // Add key and secret for query
 octokit.authenticate({
